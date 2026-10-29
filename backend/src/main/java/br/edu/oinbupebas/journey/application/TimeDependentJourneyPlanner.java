@@ -5,6 +5,7 @@ import br.edu.oinbupebas.transit.api.TransitCatalog;
 import br.edu.oinbupebas.transit.api.TransitCatalog.Stop;
 import br.edu.oinbupebas.transit.api.TransitCatalog.StopCall;
 import br.edu.oinbupebas.transit.api.TransitCatalog.Trip;
+import br.edu.oinbupebas.transit.api.TransitGeometry;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -81,7 +82,7 @@ public class TimeDependentJourneyPlanner implements JourneyPlanner {
           if (state.boardings()>0) legs.add(TimedLeg.transfer(boarding.call().stopName(),state.atSeconds(),boarding.call().departureSeconds()));
           legs.add(TimedLeg.transit(boarding.call().stopName(),arrival.stopName(),boarding.call().departureSeconds(),
             arrival.arrivalSeconds(),boarding.trip().lineShortName(),boarding.trip().direction(),boarding.trip().provenance(),
-            segmentGeometry(boarding.trip(),boarding.index(),next,stops)));
+            TransitGeometry.segment(boarding.trip(),boarding.index(),next,stops)));
           var advanced = new State(arrival.stopId(),arrival.arrivalSeconds(),state.boardings()+1,state.walkSeconds(),
             state.waitSeconds()+wait,state.rideSeconds()+arrival.arrivalSeconds()-boarding.call().departureSeconds(),
             List.copyOf(legs),boarding.trip().id());
@@ -131,21 +132,6 @@ public class TimeDependentJourneyPlanner implements JourneyPlanner {
     double dLat=lat2-lat1,dLon=Math.toRadians(b.longitude()-a.longitude());
     double h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)*Math.sin(dLon/2);
     return (int)Math.round(6_371_000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))*WALK_DISCOVERY_FACTOR);
-  }
-  /** Recorta a polilinha OSRM entre as duas paradas, preservando o sentido do padrão. */
-  private static List<TransitCatalog.Coordinate> segmentGeometry(Trip trip,int fromIndex,int toIndex,Map<String,Stop> stops) {
-    if (trip.geometry().size()<2 || fromIndex>=toIndex) return trip.geometry();
-    int start=nearestPoint(trip.geometry(),stops.get(trip.calls().get(fromIndex).stopId()));
-    int end=nearestPoint(trip.geometry(),stops.get(trip.calls().get(toIndex).stopId()));
-    if (end<start) { int swap=start; start=end; end=swap; }
-    var segment=new ArrayList<>(trip.geometry().subList(start,end+1));
-    if (segment.size()<2) return trip.geometry();
-    return List.copyOf(segment);
-  }
-  private static int nearestPoint(List<TransitCatalog.Coordinate> geometry,Stop stop) {
-    int best=0; double distance=Double.MAX_VALUE;
-    for(int i=0;i<geometry.size();i++){var point=geometry.get(i);double d=Math.pow(point.latitude()-stop.latitude(),2)+Math.pow(point.longitude()-stop.longitude(),2);if(d<distance){distance=d;best=i;}}
-    return best;
   }
   private static int walkSeconds(int meters) { return (int)Math.ceil(meters/WALK_METERS_PER_SECOND); }
   private static String key(State state) { return state.stopId()+"|"+state.boardings(); }
