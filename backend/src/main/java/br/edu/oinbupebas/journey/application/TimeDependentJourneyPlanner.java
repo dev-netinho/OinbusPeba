@@ -80,7 +80,7 @@ public class TimeDependentJourneyPlanner implements JourneyPlanner {
           var legs = new ArrayList<>(state.legs());
           if (state.boardings()>0) legs.add(TimedLeg.transfer(boarding.call().stopName(),state.atSeconds(),boarding.call().departureSeconds()));
           legs.add(TimedLeg.transit(boarding.call().stopName(),arrival.stopName(),boarding.call().departureSeconds(),
-            arrival.arrivalSeconds(),boarding.trip().lineShortName(),boarding.trip().direction(),boarding.trip().provenance()));
+            arrival.arrivalSeconds(),boarding.trip().lineShortName(),boarding.trip().direction(),boarding.trip().provenance(),boarding.trip().geometry()));
           var advanced = new State(arrival.stopId(),arrival.arrivalSeconds(),state.boardings()+1,state.walkSeconds(),
             state.waitSeconds()+wait,state.rideSeconds()+arrival.arrivalSeconds()-boarding.call().departureSeconds(),
             List.copyOf(legs),boarding.trip().id());
@@ -144,11 +144,11 @@ public class TimeDependentJourneyPlanner implements JourneyPlanner {
 
   private record Boarding(Trip trip,int index,StopCall call) {}
   private record State(String stopId,int atSeconds,int boardings,int walkSeconds,int waitSeconds,int rideSeconds,List<TimedLeg> legs,String lastTripId) {}
-  private record TimedLeg(String mode,String from,String to,int departure,int arrival,String line,String direction,int distance,String provenance) {
-    static TimedLeg walk(String from,String to,int dep,int arr,int meters){return new TimedLeg("WALK",from,to,dep,arr,null,null,meters,WALK_NOTE);}
-    static TimedLeg transfer(String stop,int dep,int arr){return new TimedLeg("TRANSFER",stop,stop,dep,arr,null,null,0,"Tempo mínimo de conexão e espera programada");}
-    static TimedLeg transit(String from,String to,int dep,int arr,String line,String direction,String provenance){return new TimedLeg("TRANSIT",from,to,dep,arr,line,direction,0,provenance);}
-    Leg publicLeg(){return new Leg(mode,from,to,time(departure),time(arrival),line,direction,distance,provenance);}
+  private record TimedLeg(String mode,String from,String to,int departure,int arrival,String line,String direction,int distance,String provenance,List<TransitCatalog.Coordinate> geometry) {
+    static TimedLeg walk(String from,String to,int dep,int arr,int meters){return new TimedLeg("WALK",from,to,dep,arr,null,null,meters,WALK_NOTE,List.of());}
+    static TimedLeg transfer(String stop,int dep,int arr){return new TimedLeg("TRANSFER",stop,stop,dep,arr,null,null,0,"Tempo mínimo de conexão e espera programada",List.of());}
+    static TimedLeg transit(String from,String to,int dep,int arr,String line,String direction,String provenance,List<TransitCatalog.Coordinate> geometry){return new TimedLeg("TRANSIT",from,to,dep,arr,line,direction,0,provenance,geometry);}
+    Leg publicLeg(){return new Leg(mode,from,to,time(departure),time(arrival),line,direction,distance,provenance,geometry);}
   }
   private record Candidate(int start,int arrival,int transfers,int walkSeconds,int waitSeconds,int rideSeconds,List<TimedLeg> legs) {
     int duration(){return arrival-start;}

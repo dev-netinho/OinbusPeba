@@ -49,6 +49,7 @@ public class PostgresTransitCatalog implements TransitCatalog {
   public Timetable timetable(LocalDate serviceDate) {
     var rows = jdbc.sql("""
         select t.id::text trip_id,l.id line_id,l.short_name,p.headsign,p.provenance::text provenance,
+               ST_AsText(p.geometry) geometry_wkt,
                ps.stop_id,s.name stop_name,ps.stop_sequence,
                t.service_start_seconds+st.arrival_offset_seconds arrival_seconds,
                t.service_start_seconds+st.departure_offset_seconds departure_seconds,
@@ -79,7 +80,7 @@ public class PostgresTransitCatalog implements TransitCatalog {
 
   private static TripRow tripRow(ResultSet rs) throws SQLException {
     return new TripRow(rs.getString("trip_id"),rs.getString("line_id"),rs.getString("short_name"),
-      rs.getString("headsign"),rs.getString("provenance"),rs.getString("stop_id"),
+      rs.getString("headsign"),rs.getString("provenance"),rs.getString("geometry_wkt"),rs.getString("stop_id"),
       rs.getString("stop_name"),rs.getInt("stop_sequence"),rs.getInt("arrival_seconds"),
       rs.getInt("departure_seconds"),rs.getBoolean("monday"),rs.getBoolean("tuesday"),
       rs.getBoolean("wednesday"),rs.getBoolean("thursday"),rs.getBoolean("friday"),
@@ -92,7 +93,7 @@ public class PostgresTransitCatalog implements TransitCatalog {
     private LineBuilder(LineRow row) { this.row=row; }
     private Line build() { return new Line(row.id,row.shortName,row.name,row.color,row.provenance,List.copyOf(stopIds)); }
   }
-  private record TripRow(String tripId,String lineId,String lineShortName,String direction,String provenance,
+  private record TripRow(String tripId,String lineId,String lineShortName,String direction,String provenance,String geometryWkt,
       String stopId,String stopName,int sequence,int arrivalSeconds,int departureSeconds,
       boolean monday,boolean tuesday,boolean wednesday,boolean thursday,boolean friday,boolean saturday,boolean sunday) {
     boolean operates(DayOfWeek day) { return switch(day) {
@@ -103,6 +104,18 @@ public class PostgresTransitCatalog implements TransitCatalog {
   private static final class TripBuilder {
     private final TripRow row; private final List<StopCall> calls = new ArrayList<>();
     private TripBuilder(TripRow row) { this.row=row; }
-    private Trip build() { return new Trip(row.tripId,row.lineId,row.lineShortName,row.direction,row.provenance,List.copyOf(calls)); }
+    private Trip build() { return new Trip(row.tripId,row.lineId,row.lineShortName,row.direction,row.provenance,List.copyOf(calls),parseGeometry(row.geometryWkt)); }
+  }
+
+  private static List<TransitCatalog.Coordinate> parseGeometry(String wkt) {
+    if (wkt == null || !wkt.startsWith("LINESTRING")) return List.of();
+    int start=wkt.indexOf('('), end=wkt.lastIndexOf(')');
+    if (start<0 || end<0) return List.of();
+    var result=new ArrayList<TransitCatalog.Coordinate>();
+    for (String pair : wkt.substring(start+1,end).split(",")) {
+      String[] values=pair.trim().split("\\s+");
+      if (values.length>=2) result.add(new TransitCatalog.Coordinate(Double.parseDouble(values[1]),Double.parseDouble(values[0])));
+    }
+    return List.copyOf(result);
   }
 }

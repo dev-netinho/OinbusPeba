@@ -38,11 +38,29 @@ public class SimulationService {
         var following=calls.get(index+1);var target=stops.get(following.stopId());
         if(nowSecond<following.arrivalSeconds()){
           double progress=(nowSecond-call.departureSeconds())/(double)(following.arrivalSeconds()-call.departureSeconds());
-          progress=Math.max(0,Math.min(1,progress));latitude=current.latitude()+(target.latitude()-current.latitude())*progress;
-          longitude=current.longitude()+(target.longitude()-current.longitude())*progress;nextStop=following.stopName();eta=Math.max(1,(following.arrivalSeconds()-nowSecond+59)/60);break;
+          progress=Math.max(0,Math.min(1,progress));
+          var geometry=trip.geometry();
+          if (geometry.size() >= 2) {
+            var point=pointAlong(geometry, progress);
+            latitude=point.latitude(); longitude=point.longitude();
+          } else {
+            latitude=current.latitude()+(target.latitude()-current.latitude())*progress;
+            longitude=current.longitude()+(target.longitude()-current.longitude())*progress;
+          }
+          nextStop=following.stopName();eta=Math.max(1,(following.arrivalSeconds()-nowSecond+59)/60);break;
         }
       }
     }
     return new VehiclePosition("SIM-"+trip.id().substring(0,Math.min(8,trip.id().length())).toUpperCase(),trip.lineShortName(),trip.direction(),latitude,longitude,nextStop,eta,calculatedAt,true);
   }
+
+  private static TransitCatalog.Coordinate pointAlong(java.util.List<TransitCatalog.Coordinate> points,double progress) {
+    double total=0; for(int i=1;i<points.size();i++) total += distance(points.get(i-1),points.get(i));
+    double remaining=total*progress;
+    for(int i=1;i<points.size();i++) { var a=points.get(i-1); var b=points.get(i); double segment=distance(a,b);
+      if(remaining<=segment || i==points.size()-1) { double f=segment==0?0:remaining/segment; return new TransitCatalog.Coordinate(a.latitude()+(b.latitude()-a.latitude())*f,a.longitude()+(b.longitude()-a.longitude())*f); }
+      remaining-=segment;
+    } return points.getLast();
+  }
+  private static double distance(TransitCatalog.Coordinate a,TransitCatalog.Coordinate b) { double dy=b.latitude()-a.latitude(),dx=(b.longitude()-a.longitude())*Math.cos(Math.toRadians((a.latitude()+b.latitude())/2)); return Math.sqrt(dx*dx+dy*dy); }
 }
