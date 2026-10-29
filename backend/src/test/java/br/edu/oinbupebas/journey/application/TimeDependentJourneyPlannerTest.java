@@ -28,6 +28,15 @@ class TimeDependentJourneyPlannerTest {
     assertThat(result.getFirst().legs()).extracting(JourneyPlanner.Leg::line).contains("L1","L2");
   }
 
+  @Test void clipsTransitGeometryToBoardingAndAlightingStops(){
+    var calls=List.of(call("a",8,0),call("b",8,10),call("c",8,20));
+    var trip=new TransitCatalog.Trip("seg","L1","L1","C","synthetic",calls,
+      List.of(new TransitCatalog.Coordinate(0,0),new TransitCatalog.Coordinate(0,0.01),new TransitCatalog.Coordinate(0,0.02)));
+    var result=planner(trip).plan(query("a","b",7,55,0));
+    var leg=result.getFirst().legs().stream().filter(item->item.line()!=null).findFirst().orElseThrow();
+    assertThat(leg.geometry()).hasSize(2).extracting(TransitCatalog.Coordinate::longitude).containsExactly(0.0,0.01);
+  }
+
   @Test void plansTwoTransfers(){
     var result=planner(trip("ab","L1","B",call("a",8,0),call("b",8,10)),
       trip("bc","L2","C",call("b",8,14),call("c",8,20)),trip("cd","L3","D",call("c",8,24),call("d",8,35)))

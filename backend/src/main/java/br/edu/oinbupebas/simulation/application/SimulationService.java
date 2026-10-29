@@ -39,7 +39,7 @@ public class SimulationService {
         if(nowSecond<following.arrivalSeconds()){
           double progress=(nowSecond-call.departureSeconds())/(double)(following.arrivalSeconds()-call.departureSeconds());
           progress=Math.max(0,Math.min(1,progress));
-          var geometry=trip.geometry();
+          var geometry=segmentGeometry(trip,index,index+1,stops);
           if (geometry.size() >= 2) {
             var point=pointAlong(geometry, progress);
             latitude=point.latitude(); longitude=point.longitude();
@@ -61,6 +61,18 @@ public class SimulationService {
       if(remaining<=segment || i==points.size()-1) { double f=segment==0?0:remaining/segment; return new TransitCatalog.Coordinate(a.latitude()+(b.latitude()-a.latitude())*f,a.longitude()+(b.longitude()-a.longitude())*f); }
       remaining-=segment;
     } return points.getLast();
+  }
+  private static java.util.List<TransitCatalog.Coordinate> segmentGeometry(TransitCatalog.Trip trip,int fromIndex,int toIndex,Map<String,TransitCatalog.Stop> stops) {
+    if(trip.geometry().size()<2)return trip.geometry();
+    int start=nearestPoint(trip.geometry(),stops.get(trip.calls().get(fromIndex).stopId()));
+    int end=nearestPoint(trip.geometry(),stops.get(trip.calls().get(toIndex).stopId()));
+    if(end<start){int swap=start;start=end;end=swap;}
+    return trip.geometry().subList(start,end+1);
+  }
+  private static int nearestPoint(java.util.List<TransitCatalog.Coordinate> geometry,TransitCatalog.Stop stop) {
+    int best=0;double distance=Double.MAX_VALUE;
+    for(int i=0;i<geometry.size();i++){var point=geometry.get(i);double d=Math.pow(point.latitude()-stop.latitude(),2)+Math.pow(point.longitude()-stop.longitude(),2);if(d<distance){distance=d;best=i;}}
+    return best;
   }
   private static double distance(TransitCatalog.Coordinate a,TransitCatalog.Coordinate b) { double dy=b.latitude()-a.latitude(),dx=(b.longitude()-a.longitude())*Math.cos(Math.toRadians((a.latitude()+b.latitude())/2)); return Math.sqrt(dx*dx+dy*dy); }
 }
