@@ -1,6 +1,6 @@
 # Dados e proveniência
 
-Data de acesso das fontes: **2026-10-28**.
+Data de acesso das fontes: **2026-10-29**.
 
 | Fonte | Publicação | Sustenta | Limites/licença |
 |---|---:|---|---|
@@ -10,11 +10,13 @@ Data de acesso das fontes: **2026-10-28**.
 | [Plano de Mobilidade P7.2](https://parauapebas.pa.gov.br/wp-content/uploads/2021/11/Parauapebas_PMU_Relatorio_P7.2_v10.1_compressed.pdf) | documento histórico | ocorrência histórica do código IB003 | frequência antiga não reutilizada como atual |
 | [Partage Shopping — site oficial](https://www.partageshoppingparauapebas.com.br/) | página vigente | nome e endereço Rod. Dr. Faisal Salmen, lote 01-A, Alvorá | não sustenta serviço de ônibus |
 | [OpenStreetMap, objeto do Partage](https://www.openstreetmap.org/way/163163063) | base colaborativa | coordenada aproximada do POI/edificação | ODbL; atribuição obrigatória; não valida acesso pedestre |
+| [OSRM route service](https://router.project-osrm.org/) sobre dados OpenStreetMap | 29/10/2026 | polilinhas viárias pré-computadas para os padrões demonstrativos, gravadas em V5 | consulta pontual; perfil de condução; não confirma itinerário de transporte coletivo; rota pode divergir de restrições locais e não deve ser tratada como oficial |
 
 ## Classificação por campo
 
 - **Baseado em fonte pública:** nomes TA275/A001/A002/A003/A005, Tropical, Parada Amazônica e Partage Shopping.
-- **Aproximado/inferido:** coordenadas de bairros/paradas e polilinhas, úteis apenas à demonstração.
+- **Aproximado/inferido:** coordenadas de bairros/paradas, úteis apenas à demonstração.
+- **Roteado demonstrativo:** polilinhas V5 obtidas por consulta pontual ao OSRM sobre a malha OSM; acompanham a malha viária disponível no momento da consulta, mas não representam o itinerário municipal de uma linha.
 - **Inteiramente sintético:** D01/D06/D07, horários, stop times, conexões, calendários, IDs e posições de veículos.
 
 O catálogo Java expõe `provenance` em parada e linha. A migração prevê `jsonb` por entidade/padrão/viagem. Uma etiqueta global “real” é deliberadamente evitada.
