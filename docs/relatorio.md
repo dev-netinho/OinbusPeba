@@ -53,7 +53,7 @@ Dockerfiles multi-stage, Compose, healthchecks, volumes, limites, logs rotativos
 
 Foram executados testes Maven, Vitest e build Vite. O host de desenvolvimento
 não possuía Docker, portanto os testes Testcontainers locais e Playwright não
-foram executados. Após autorização explícita, o commit `2f54e11` foi publicado
+foram executados. Após autorização explícita, o commit `2a22f36` foi publicado
 na VPS e validado externamente em <https://oinbuspeba.olua.me>: migrations e
 seed, catálogo, planejamento Tropical → Partage, SSE, cadastro/login/logout,
 favoritos persistidos e autorização administrativa sem sessão. O DNS usa um

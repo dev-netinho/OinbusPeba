@@ -1,17 +1,23 @@
 # Progresso
 
-Atualizado em 2026-10-29 após deploy externo autorizado e smoke tests públicos.
+Atualizado em 2026-10-29 após correção de UX/geometria e novo deploy externo autorizado.
 
 ## Evidência de produção
 
 - URL: `https://oinbuspeba.olua.me` (HTTPS válido via túnel Cloudflare dedicado).
-- Commit implantado: `2f54e11dfb9227655a373fda99c797938562fcba`.
+- Commit implantado: `2a22f36`.
 - Frontend, backend, PostgreSQL/PostGIS e RabbitMQ estão saudáveis; os volumes
   `oinbupebas_postgres_data` e `oinbupebas_rabbitmq_data` são próprios do projeto.
 - Flyway v1–v3 e seed demonstrativo foram aplicados no banco de produção.
 - Smoke tests externos aprovados: catálogo, Tropical → Partage com alternativas
   direta/1/2 baldeações, SSE, cadastro, login/logout, favorito persistido e 401
   em endpoint administrativo sem sessão.
+- Verificação visual pública executada em viewport 1440×900 e 390×844: resultados
+  aparecem junto da busca, três alternativas vêm da API, seleção altera detalhes
+  e o mapa, e não houve overflow horizontal móvel.
+- O contrato de planejamento agora retorna a geometria persistida do padrão; a
+  simulação interpola essa polilinha. A migração V4 adiciona pontos intermediários
+  sintéticos e marca explicitamente que não são navegação viária.
 - Testcontainers continua não executável no workstation por falta de Docker;
   o build remoto e a inicialização real no VPS foram aprovados.
 
@@ -53,6 +59,8 @@ Atualizado em 2026-10-29 após deploy externo autorizado e smoke tests públicos
 | E2E dos 12 fluxos | Especificação atual cobre falha de catálogo sem fallback; componentes reais estão integrados | Chromium não foi disponibilizado e Compose não sobe sem Docker | Playwright apontado para Compose saudável | bloqueado externamente |
 | Documentação acadêmica e diagramas | README, relatório MD/PDF, documentos e 9 diagramas renderizados | Precisam ser sincronizados somente depois das implementações e validações desta rodada | Verificação de links, renderização e coerência com código | implementado não validado |
 | Deploy externo | `compose.vps.yml`, túnel dedicado, DNS CNAME e volumes isolados | Playwright público completo ainda não foi executado | Smoke externo de frontend, API, catálogo, planejamento, SSE, conta e autorização | validado com evidência |
+| Correção de UX do planejador | Busca, alternativas e detalhes no painel ao lado do mapa; estados de carregamento/erro e feedback live | Mapa depende de tiles externos; fallback textual permanece | Build/lint, inspeção visual desktop/mobile e seleção de alternativa | validado com evidência |
+| Geometria de itinerário no mapa | V4 persiste polilinhas demonstrativas; API entrega pontos por trecho; veículos seguem a geometria | Pontos são aproximação sintética, não rota de ruas validada | API retorna `geometry`, teste determinístico de simulação e inspeção do mapa | validado com evidência |
 
 ## Evidência preservada da rodada anterior
 

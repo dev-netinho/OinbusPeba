@@ -1,7 +1,7 @@
 # Deploy
 
 Deploy realizado e validado em `https://oinbuspeba.olua.me` na VPS `koss-vps`
-(Ubuntu 24.04, Docker). Commit implantado: `2f54e11`. O subdomínio usa um
+(Ubuntu 24.04, Docker). Commit implantado: `2a22f36`. O subdomínio usa um
 túnel Cloudflare dedicado ao OinbuPebas, que encaminha `/api` ao backend e o
 restante ao frontend. O túnel e os serviços usam volumes/rede próprios; não
 há portas públicas para PostgreSQL, RabbitMQ, Mailpit ou Actuator.
