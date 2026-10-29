@@ -8,6 +8,16 @@ networks:
     external: true
 
 services:
+  tunnel:
+    image: cloudflare/cloudflared:2026.6.1
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?define CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - traefik-public
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
+
   caddy:
     profiles: ["disabled-on-shared-proxy"]
 
