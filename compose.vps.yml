@@ -24,7 +24,6 @@ services:
       traefik.http.routers.oinbupebas-api.rule: "Host(`oinbuspeba.olua.me`) && PathPrefix(`/api`)"
       traefik.http.routers.oinbupebas-api.entrypoints: websecure
       traefik.http.routers.oinbupebas-api.tls: "true"
-      traefik.http.routers.oinbupebas-api.tls.certresolver: let-enc
       traefik.http.routers.oinbupebas-api.priority: "100"
       traefik.http.services.oinbupebas-api.loadbalancer.server.port: "8080"
 
@@ -38,5 +37,4 @@ services:
       traefik.http.routers.oinbupebas-web.rule: "Host(`oinbuspeba.olua.me`)"
       traefik.http.routers.oinbupebas-web.entrypoints: websecure
       traefik.http.routers.oinbupebas-web.tls: "true"
-      traefik.http.routers.oinbupebas-web.tls.certresolver: let-enc
       traefik.http.services.oinbupebas-web.loadbalancer.server.port: "80"
