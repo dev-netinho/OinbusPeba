@@ -8,7 +8,8 @@ Plataforma acadêmica, independente e não oficial, para demonstrar planejamento
 
 - Backend: Java 21, Spring Boot 3.5, Spring Security, JPA, Flyway, PostgreSQL/PostGIS, RabbitMQ, SSE e OpenAPI.
 - Frontend: Vue 3, TypeScript, Vite 8, Pinia, Tailwind CSS 4 e Leaflet.
-- Operação: Docker Compose, Caddy TLS, Mailpit em desenvolvimento e healthchecks.
+- Operação: Docker Compose, Caddy TLS em desenvolvimento, túnel Cloudflare
+  dedicado na VPS, Mailpit em desenvolvimento e healthchecks.
 
 ## Acesso público
 
