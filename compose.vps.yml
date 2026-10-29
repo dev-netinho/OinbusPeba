@@ -12,6 +12,9 @@ services:
     profiles: ["disabled-on-shared-proxy"]
 
   backend:
+    # O Mailpit fica fora do perfil de produção; os serviços têm restart e
+    # os healthchecks evitam manter uma inicialização falha.
+    depends_on: !reset []
     networks:
       - default
       - traefik-public
@@ -37,4 +40,3 @@ services:
       traefik.http.routers.oinbupebas-web.tls: "true"
       traefik.http.routers.oinbupebas-web.tls.certresolver: let-enc
       traefik.http.services.oinbupebas-web.loadbalancer.server.port: "80"
-
