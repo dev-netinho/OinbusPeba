@@ -11,6 +11,7 @@ import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,6 +23,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class MessagingConfig {
   public static final String EVENTS="oinbupebas.events",DLX="oinbupebas.dlx",IMPORT_QUEUE="oinbupebas.catalog-import",DLQ="oinbupebas.dlq";
   @Bean TopicExchange events(){return new TopicExchange(EVENTS,true,false);}
+  @Bean RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory){return new RabbitAdmin(connectionFactory);}
   @Bean DirectExchange dlx(){return new DirectExchange(DLX,true,false);}
   @Bean Queue imports(){return QueueBuilder.durable(IMPORT_QUEUE).withArgument("x-dead-letter-exchange",DLX).withArgument("x-dead-letter-routing-key","catalog.import.failed").build();}
   @Bean Binding importBinding(Queue imports,TopicExchange events){return BindingBuilder.bind(imports).to(events).with("catalog.import.requested");}
