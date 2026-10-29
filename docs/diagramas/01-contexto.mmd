@@ -1,0 +1,6 @@
+flowchart LR
+  V[Visitante] -->|HTTPS REST / SSE| O[OinbuPebas]
+  U[Usuário] -->|sessão HTTPS| O
+  A[Administrador] -->|sessão + ADMIN| O
+  O -.->|tiles opcionais| M[OpenStreetMap]
+  O --- N[Projeto acadêmico; não controla o transporte real]

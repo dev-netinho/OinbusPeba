@@ -1,0 +1,8 @@
+flowchart TB
+  B[Navegador Vue] -->|HTTPS REST| P[Caddy TLS]
+  B -->|SSE| P
+  P --> F[Frontend Nginx]
+  P --> J[Backend Spring Boot]
+  J -->|JDBC/JPA| D[(PostgreSQL + PostGIS)]
+  J -->|AMQP| R[(RabbitMQ)]
+  J -.->|SMTP local| E[Mailpit dev]

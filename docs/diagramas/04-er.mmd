@@ -1,0 +1,10 @@
+erDiagram
+  USER_ACCOUNT ||--o{ FAVORITE_JOURNEY : owns
+  OPERATOR ||--o{ LINE : runs
+  LINE ||--o{ PATTERN : has
+  PATTERN ||--o{ PATTERN_STOP : orders
+  STOP ||--o{ PATTERN_STOP : appears
+  PATTERN ||--o{ TRIP : schedules
+  CALENDAR ||--o{ TRIP : enables
+  TRIP ||--o{ STOP_TIME : contains
+  OUTBOX_EVENT }o--o{ PROCESSED_EVENT : deduplicates

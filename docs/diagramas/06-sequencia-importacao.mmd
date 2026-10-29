@@ -1,0 +1,13 @@
+sequenceDiagram
+  actor A as Admin
+  participant API as Operations
+  participant DB as PostgreSQL
+  participant MQ as RabbitMQ
+  A->>API: upload CSV
+  API->>DB: tarefa PENDING + outbox
+  API-->>A: 202 taskId
+  API->>MQ: evento import.requested
+  MQ-->>API: consumo/retry
+  API->>DB: staging + relatório
+  A->>API: confirmar publicação
+  API->>DB: publicação atômica

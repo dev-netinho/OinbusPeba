@@ -1,0 +1,26 @@
+services:
+  db:
+    restart: unless-stopped
+    deploy: {resources: {limits: {memory: 768M}}}
+  rabbitmq:
+    restart: unless-stopped
+    deploy: {resources: {limits: {memory: 512M}}}
+  mailpit:
+    profiles: ["disabled-in-production"]
+  backend:
+    ports: !reset []
+    environment: {COOKIE_SECURE: "true", MAIL_ENABLED: "false"}
+    deploy: {resources: {limits: {memory: 768M}}}
+    logging: {options: {max-size: "10m", max-file: "5"}}
+  frontend:
+    ports: !reset []
+    deploy: {resources: {limits: {memory: 128M}}}
+  caddy:
+    image: caddy:2.10-alpine
+    environment: {APP_DOMAIN: "${APP_DOMAIN:?define APP_DOMAIN}"}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: ["./infra/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data", "caddy_config:/config", "caddy_logs:/var/log/caddy"]
+    depends_on: {backend: {condition: service_healthy}, frontend: {condition: service_healthy}}
+    restart: unless-stopped
+    logging: {options: {max-size: "10m", max-file: "5"}}
+volumes: {caddy_data: {}, caddy_config: {}, caddy_logs: {}}

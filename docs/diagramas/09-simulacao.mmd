@@ -1,0 +1,9 @@
+sequenceDiagram
+  participant Clock as Relógio America/Belem
+  participant S as SimulationService
+  participant F as Vue/Leaflet
+  Clock->>S: instante compartilhado
+  S->>S: progresso na polilinha + próxima parada
+  S-->>F: SSE a cada ~4s
+  F->>F: marcador + ETA simulado
+  Note over F,S: Falha SSE ativa polling e marca stale após 12 segundos

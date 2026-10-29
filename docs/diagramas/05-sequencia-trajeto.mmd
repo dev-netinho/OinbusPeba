@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor V as Visitante
+  participant F as Vue
+  participant J as Journey
+  participant T as Transit
+  V->>F: Tropical, Partage, 07:20
+  F->>J: POST /journeys/plan
+  J->>T: paradas, padrões, partidas
+  T-->>J: catálogo + proveniência
+  J->>J: caminhada, espera, sentido, conexão
+  J-->>F: até 3 alternativas
+  F-->>V: cartões + espinha + mapa

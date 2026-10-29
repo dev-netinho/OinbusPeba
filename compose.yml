@@ -1,0 +1,41 @@
+name: oinbupebas
+services:
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    environment: {POSTGRES_DB: "${DATABASE_NAME:-oinbupebas}", POSTGRES_USER: "${DATABASE_USER:-oinbupebas}", POSTGRES_PASSWORD: "${DATABASE_PASSWORD:-oinbupebas_local}"}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"], interval: 5s, timeout: 3s, retries: 15}
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment: {RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-oinbupebas}", RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-oinbupebas_local}"}
+    volumes: ["rabbitmq_data:/var/lib/rabbitmq"]
+    healthcheck: {test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"], interval: 10s, timeout: 5s, retries: 10}
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8025:8025"]
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/${DATABASE_NAME:-oinbupebas}
+      DATABASE_USER: ${DATABASE_USER:-oinbupebas}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-oinbupebas_local}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-oinbupebas}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-oinbupebas_local}
+      COOKIE_SECURE: "false"
+      MAIL_ENABLED: "true"
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      RECOVERY_BASE_URL: http://localhost:4173/redefinir-senha
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on: {db: {condition: service_healthy}, rabbitmq: {condition: service_healthy}, mailpit: {condition: service_started}}
+    restart: unless-stopped
+    healthcheck: {test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health/readiness"], interval: 15s, timeout: 4s, retries: 10}
+  frontend:
+    build: ./frontend
+    ports: ["127.0.0.1:4173:80"]
+    depends_on: {backend: {condition: service_healthy}}
+    restart: unless-stopped
+volumes: {postgres_data: {}, rabbitmq_data: {}}

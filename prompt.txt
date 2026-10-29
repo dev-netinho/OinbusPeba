@@ -1,0 +1,1004 @@
+Você é o agente responsável por projetar, implementar, testar, documentar e preparar para publicação o OinbuPebas, uma plataforma acadêmica funcional de mobilidade urbana para Parauapebas, Pará, Brasil.
+
+Você começará em um diretório/repositório vazio.
+
+Não entregue apenas um plano, protótipo visual, esqueleto ou coleção de arquivos não executados. Construa o sistema completo, execute as verificações possíveis e apresente evidências honestas do resultado.
+
+Trabalhe autonomamente com decisões técnicas fundamentadas. Não interrompa por dúvidas comuns de implementação: adote os padrões deste documento, registre decisões relevantes e avance. Só solicite intervenção quando houver bloqueio real de infraestrutura, autorização, credencial ou uma decisão destrutiva.
+
+======================================================================
+1. OBJETIVO DO PRODUTO
+======================================================================
+
+O OinbuPebas permite que uma pessoa:
+
+- Escolha sua origem por localização atual, endereço, ponto de interesse,
+  parada ou clique no mapa.
+- Escolha seu destino pelos mesmos mecanismos.
+- Descubra se existe trajeto direto ou se precisa trocar de veículo.
+- Compare alternativas considerando horários, caminhada, espera e baldeações.
+- Veja linhas, paradas, horários programados e veículos simulados no mapa.
+- Crie conta para salvar trajetos e preferências.
+- Consulte informações sem precisar de conta.
+
+Exemplo obrigatório:
+Uma pessoa está no bairro Tropical e deseja ir ao Partage Shopping.
+O sistema identifica paradas próximas da origem e do destino, avalia
+viagens disponíveis no horário escolhido e apresenta um trajeto direto
+ou com baldeações, conforme a rede cadastrada.
+
+Não prometa que existe uma ligação real específica sem evidência.
+Garanta que o conjunto demonstrativo permita executar esse exemplo,
+identificando como sintética qualquer conexão criada para a demonstração.
+
+A aplicação NÃO:
+- Vende passagens.
+- Recebe pagamentos.
+- Reserva assentos.
+- Controla veículos reais.
+- Modifica a operação real do transporte.
+- Depende de integração com bilhetagem.
+- Afirma fornecer GPS real.
+- Representa oficialmente a prefeitura ou qualquer transportadora.
+
+Se a plataforma estiver fora do ar, o transporte real continua normalmente.
+Isso deve constar no relatório e na documentação de falhas.
+
+======================================================================
+2. STACK E PRINCÍPIOS
+======================================================================
+
+Adote:
+
+Backend:
+- Java 21.
+- Spring Boot em versão estável compatível.
+- Maven Wrapper.
+- Spring Web, Validation, Security e Data JPA.
+- Flyway.
+- PostgreSQL com PostGIS.
+- Spring AMQP com RabbitMQ.
+- Spring Boot Actuator.
+- OpenAPI/Swagger UI.
+
+Frontend:
+- Vue 3.
+- TypeScript.
+- Vite.
+- Vue Router.
+- Pinia quando houver estado compartilhado.
+- Tailwind CSS.
+- Leaflet para mapas.
+- Biblioteca acessível de componentes apenas se realmente útil.
+
+Qualidade:
+- JUnit.
+- Testcontainers para integrações.
+- Vitest.
+- Playwright para fluxos ponta a ponta.
+- Linters e formatação.
+- Docker e Docker Compose.
+
+Infraestrutura:
+- Reverse proxy TLS compatível com o ambiente existente.
+- Mailpit para e-mail no desenvolvimento.
+- Arquivos de exemplo de configuração sem segredos.
+- Serviços internos não expostos publicamente.
+
+Escolha versões atuais compatíveis no momento da execução e fixe
+dependências e lockfiles. Não use versões preview ou milestone.
+
+Não acrescente Redis, Kubernetes, microsserviços, múltiplos bancos
+ou ferramentas pesadas sem necessidade demonstrável.
+
+======================================================================
+3. ARQUITETURA
+======================================================================
+
+Implemente um monólito modular.
+
+Módulos mínimos:
+
+1. identity
+   Contas, autenticação, autorização, recuperação de senha e perfil.
+
+2. transit
+   Empresas, linhas, sentidos, paradas, itinerários, calendários,
+   viagens, horários e avisos operacionais.
+
+3. journey
+   Planejamento origem-destino e comparação de alternativas.
+
+4. simulation
+   Relógio demonstrativo, veículos simulados, posições e estimativas.
+
+5. personalization
+   Trajetos favoritos, paradas favoritas e preferências.
+
+6. operations
+   Importações, tarefas assíncronas, auditoria, estatísticas,
+   outbox, falhas e reprocessamento.
+
+Organize por domínio, não apenas por controllers/services/repositories globais.
+
+Cada módulo deve:
+- Ter responsabilidade e dados claramente definidos.
+- Expor interfaces explícitas para outros módulos.
+- Evitar acesso direto aos repositórios de outro módulo.
+- Ter dependências documentadas.
+- Ter regras testáveis fora dos controllers.
+
+Use banco único, com propriedade lógica das tabelas por módulo.
+Explique que banco único não elimina a necessidade de limites internos.
+
+Comunicação:
+- REST/JSON síncrono entre navegador e backend para consultas e comandos.
+- Chamadas internas explícitas entre módulos para operações imediatas.
+- RabbitMQ para tarefas assíncronas reais.
+- SSE para atualização do mapa, com polling de fallback.
+
+Não force toda consulta a passar por uma fila.
+Não chame comunicação REST de assíncrona só porque o frontend usa async/await.
+
+Sem API Gateway.
+Sem Service Mesh.
+Reverse proxy para TLS e roteamento não deve ser descrito como API Gateway.
+
+O backend permanece um único artefato implantável.
+RabbitMQ, banco e frontend são processos separados.
+Não apresente módulos como microsserviços independentes.
+
+Implemente ao menos um teste arquitetural que detecte violações importantes
+dos limites entre módulos.
+
+======================================================================
+4. ATORES E AUTENTICAÇÃO
+======================================================================
+
+Dois papéis:
+- USER.
+- ADMIN.
+
+Visitantes podem:
+- Consultar mapa, linhas, paradas, horários e trajetos.
+- Visualizar simulação.
+- Consultar avisos.
+
+Usuários autenticados podem:
+- Gerenciar perfil.
+- Salvar e remover favoritos.
+- Configurar preferências.
+- Consultar e limpar seu histórico.
+- Excluir a própria conta.
+
+Administradores podem:
+- Gerenciar catálogo de transporte.
+- Importar dados.
+- Gerenciar avisos.
+- Controlar simulação.
+- Consultar auditoria e tarefas.
+- Reprocessar tarefas com falha.
+
+Use autenticação segura por sessão com cookie HttpOnly.
+Configure Secure em produção, SameSite apropriado e proteção CSRF.
+Use hash de senha adequado.
+Não guarde token de sessão em localStorage.
+
+Inclua:
+- Cadastro.
+- Login e logout.
+- Recuperação de senha com token de uso único e validade.
+- Respostas que evitem enumeração desnecessária de contas.
+- Rate limiting para autenticação e abuso.
+- Autorização no backend, não apenas ocultação de botões.
+- Validação de propriedade dos recursos.
+
+Crie contas de demonstração exclusivamente para desenvolvimento.
+Não publique credenciais padrão de administrador em produção.
+Bootstrap administrativo por configuração segura ou comando documentado.
+
+Sem SMTP real configurado, use Mailpit no ambiente local.
+Em produção, recuperação de senha deve indicar indisponibilidade de forma
+segura, sem fingir que enviou e-mail e sem revelar tokens.
+
+======================================================================
+5. DADOS E PROVENIÊNCIA
+======================================================================
+
+Pesquise fontes públicas sobre transporte em Parauapebas.
+
+Referências iniciais para investigação:
+- Publicações municipais sobre TA275, A001 Cidade Jardim,
+  A002 Nova Carajás, A003 Paraíso e A005 UFRA.
+- Parada Amazônica.
+- Partage Shopping.
+- Publicações históricas sobre a linha Tropical/IB003.
+
+Não considere notícias antigas como confirmação de horários atuais.
+Não confunda transporte escolar com transporte coletivo aberto ao público.
+Não use dados de outro município porque existe shopping de nome parecido.
+
+Registre para os dados externos:
+- URL.
+- Título.
+- Data de acesso.
+- Data da publicação, quando disponível.
+- Campos efetivamente sustentados pela fonte.
+- Limitações.
+- Licença ou condição de uso quando identificável.
+
+Não copie dados privados, APIs não autorizadas ou conteúdo que exija
+contornar autenticação.
+
+Se não houver dados completos:
+- Crie uma rede sintética coerente na área urbana de Parauapebas.
+- Use nomes e coordenadas verificáveis de pontos de interesse quando possível.
+- Não invente precisão geográfica ou horários oficiais.
+- Marque explicitamente os campos inferidos e sintéticos.
+- Documente de onde veio a geometria.
+- Não apresente linhas demonstrativas como linhas municipais oficiais.
+
+Modele proveniência em nível suficientemente granular:
+uma linha pode ter nome baseado em fonte pública e horários inteiramente
+sintéticos. Uma etiqueta global de “dado real” não deve ocultar isso.
+
+Crie dataset demonstrativo com aproximadamente:
+- 6 a 10 linhas.
+- 40 a 80 paradas.
+- Sentidos corretamente separados.
+- Calendários e partidas suficientes para testar conexões.
+- 8 a 16 veículos simulados.
+- Pontos de interesse úteis.
+- Trajetos diretos e com uma ou duas baldeações.
+
+Inclua Tropical e Partage Shopping no cenário demonstrativo.
+
+Toda interface pública deve exibir aviso discreto e persistente:
+“Projeto acadêmico — veículos e estimativas simulados.
+Não utilize como única referência para deslocamentos reais.”
+
+======================================================================
+6. MODELO DE TRANSPORTE
+======================================================================
+
+Diferencie:
+
+- Empresa/operador.
+- Linha.
+- Sentido ou padrão de itinerário.
+- Parada.
+- Sequência ordenada de paradas.
+- Geometria do itinerário.
+- Calendário de operação.
+- Exceção de calendário.
+- Viagem programada.
+- Horário de passagem por parada.
+- Veículo.
+- Execução simulada de uma viagem.
+
+Não represente toda a operação apenas com uma entidade “rota” e um texto.
+
+Inspire o modelo nas distinções do GTFS, sem exigir implementar toda
+a especificação GTFS.
+
+Horários:
+- Timezone America/Belem.
+- Diferencie data de serviço de timestamp.
+- Suporte viagens após meia-noite usando deslocamentos desde o início
+  do dia de serviço ou modelo equivalente.
+- Valide horários não decrescentes.
+- Suporte dias úteis, sábados, domingos e exceções.
+- Não use fuso horário do servidor implicitamente.
+
+Dados espaciais:
+- SRID documentado.
+- Coordenadas validadas.
+- Índices espaciais necessários.
+- Distâncias métricas calculadas corretamente.
+- Não compare graus de latitude como se fossem metros.
+
+Mudanças de catálogo:
+- Edição com versão otimista.
+- Publicação transacional de alterações relacionadas.
+- Validação antes de publicar.
+- Aviso claro se uma alteração invalida favoritos ou itinerários.
+- Rejeição de publicação inconsistente.
+
+======================================================================
+7. PLANEJAMENTO DE TRAJETOS
+======================================================================
+
+O usuário pode informar:
+- Origem.
+- Destino.
+- Data.
+- Horário de saída.
+- Máximo de caminhada.
+- Máximo de baldeações.
+- Preferência por menor tempo, menor caminhada ou menos baldeações.
+
+Padrões:
+- Sair agora.
+- Até duas baldeações.
+- Limite de caminhada inicial e final de 800 metros cada.
+- Preferências ajustáveis com limites seguros.
+- Tempo mínimo de conexão configurável.
+- Velocidade de caminhada configurável e documentada.
+
+Não implemente “chegar até” nesta primeira versão, salvo se o núcleo
+obrigatório estiver completo e houver testes adequados.
+
+O planejador deve considerar:
+- Caminhada até a primeira parada.
+- Horário de chegada do passageiro à parada.
+- Espera pela viagem.
+- Sentido correto.
+- Ordem correta das paradas.
+- Tempo embarcado.
+- Baldeações viáveis.
+- Caminhada entre paradas de conexão.
+- Caminhada final.
+- Calendário de operação.
+- Partidas já perdidas.
+- Avisos de linha ou trecho indisponível.
+
+Implemente algoritmo time-dependent real sobre horários.
+Pode usar busca multiobjetivo, Dijkstra adaptado ou solução equivalente
+adequada ao dataset. Documente limitações e complexidade.
+
+Não:
+- Retorne uma linha só porque passa perto dos dois lugares.
+- Permita embarcar depois da partida.
+- Gere conexões temporalmente impossíveis.
+- Inverta sentido para produzir resultados.
+- Use apenas distância em linha reta como tempo total de viagem.
+- Chame o resultado de ótimo global sem sustentar isso.
+
+Apresente até três alternativas não redundantes:
+- Melhor tempo estimado.
+- Menos baldeações.
+- Menos caminhada.
+
+Cada alternativa contém:
+- Saída e chegada.
+- Duração total.
+- Tempo de caminhada, espera e deslocamento.
+- Número de baldeações.
+- Linhas e sentidos.
+- Paradas de embarque e desembarque.
+- Horários.
+- Trechos desenhados no mapa.
+- Natureza programada ou simulada das informações.
+
+Geocodificação:
+- Busca local de paradas e pontos de interesse funciona sem API paga.
+- Geocodificação externa é opcional, configurável e com limites.
+- Não dependa de um serviço público externo para o teste principal.
+- Permita selecionar qualquer coordenada no mapa dentro da área atendida.
+
+Caminhada:
+- Se não houver motor viário disponível, use aproximação explícita e
+  conservadora para descoberta de paradas.
+- Não desenhe uma reta como se fosse navegação pedestre validada.
+- Não afirme acessibilidade ou travessia segura sem dados.
+- Documente limites de rios, barreiras e conectividade.
+- Modele conexões entre paradas de forma controlada no dataset.
+
+Quando não houver resultado:
+- Explique o motivo quando identificável.
+- Permita alterar horário ou limite de caminhada.
+- Não invente uma viagem.
+
+======================================================================
+8. SIMULAÇÃO DE VEÍCULOS
+======================================================================
+
+Implemente posições simuladas no backend, compartilhadas entre clientes.
+
+Cada veículo deve:
+- Estar associado a uma viagem.
+- Seguir a geometria correspondente.
+- Respeitar os horários de passagem.
+- Parar nas paradas pelo tempo configurado.
+- Exibir sentido, linha e identificador.
+- Informar próxima parada e ETA simulado.
+
+A posição deve ser calculada pelo progresso ao longo da geometria,
+não por um ponto aleatório nem apenas por uma reta entre terminais.
+
+Use geometria local fornecida no seed ou obtida legalmente.
+Se aproximada, registre essa limitação.
+
+Atualizações:
+- SSE com intervalo aproximado de 3 a 5 segundos.
+- Reconexão do cliente.
+- Polling como fallback.
+- Identificação de dado desatualizado.
+- Timestamp de cálculo.
+- Controle de recursos e encerramento de assinaturas.
+
+Ao clicar no veículo:
+- Destaque a linha e o sentido.
+- Mostre itinerário.
+- Mostre próxima parada.
+- Mostre horário estimado simulado.
+- Atualize sem recarregar a página.
+
+Não abra uma fila RabbitMQ por navegador.
+Não publique cada atualização efêmera de GPS em outbox persistente.
+
+Relógio:
+- Modo normal acompanha horário local.
+- Modo demonstração pode pausar e acelerar.
+- Indique visualmente o horário simulado.
+- Busca de trajetos e posições devem usar a mesma referência temporal.
+- Testes usam relógio injetável e determinístico.
+- Reinício não deve teleportar veículos arbitrariamente.
+
+Controles administrativos de simulação devem ser autenticados.
+Não confunda posição simulada com telemetria real.
+
+======================================================================
+9. PROCESSAMENTO ASSÍNCRONO E CONSISTÊNCIA
+======================================================================
+
+Implemente tarefas reais, por exemplo:
+- Importação e validação de catálogo CSV.
+- Agregação de estatísticas de consultas.
+- Processamento de alterações publicadas.
+
+Escolha um formato CSV documentado para a primeira versão.
+Não declare suporte GTFS completo se não implementar e testar.
+
+Importação:
+- Upload com limites de tamanho.
+- Validação de conteúdo.
+- Área de staging.
+- Relatório de erros por linha.
+- Status PENDING, RUNNING, SUCCEEDED, FAILED.
+- Prévia e confirmação de publicação.
+- Publicação atômica de um conjunto consistente.
+- Rejeição sem corromper catálogo ativo.
+- Proteção contra CSV injection nos exports.
+
+Mensageria:
+- Outbox transacional para eventos de negócio persistentes.
+- Publicador com recuperação após reinício.
+- eventId único.
+- Consumer idempotente com registro de eventos processados.
+- Efeito e deduplicação na mesma transação quando aplicável.
+- Retries limitados com backoff.
+- DLQ para falhas persistentes.
+- Reprocessamento administrativo auditado.
+- Controle de permissões.
+- Correlação de logs.
+
+Diferencie:
+- Falha de publicação.
+- Falha transitória.
+- Mensagem inválida.
+- Falha permanente.
+- Evento duplicado.
+
+Não use rate limiting de IP como solução para mensagens duplicadas.
+Não prometa entrega exactly-once de ponta a ponta.
+Explique entrega pelo menos uma vez com efeitos idempotentes.
+
+Se RabbitMQ estiver indisponível:
+- Consultas ao catálogo persistido continuam possíveis.
+- Eventos permanecem na outbox.
+- Tarefas dependentes de mensageria exibem estado honesto.
+- A interface não anuncia conclusão inexistente.
+
+Um evento com falha não implica desfazer toda a história do sistema.
+Reverta a transação atual, preserve consistência e permita recuperação.
+
+======================================================================
+10. FALHAS E CONCORRÊNCIA
+======================================================================
+
+Implemente e documente:
+
+Backend indisponível:
+- Mensagem clara.
+- Sem spinner infinito.
+- Nova tentativa.
+- Nenhuma alegação de que veículos reais pararam.
+
+Timeout:
+- Limites no cliente e nas integrações.
+- Cancelamento ou descarte de resposta obsoleta.
+- Feedback compreensível.
+- Transporte real segue independente da plataforma.
+
+Banco indisponível:
+- Readiness sinaliza falha.
+- Respostas controladas.
+- Sem fallback que invente dados reais.
+
+Mapa externo indisponível:
+- Listas e busca local continuam acessíveis.
+- Tela explica ausência da camada cartográfica.
+
+SSE interrompido:
+- Reconexão e fallback.
+- Posição antiga marcada como desatualizada.
+
+Mensagem duplicada:
+- Não duplica efeitos.
+
+Evento não processado:
+- Retry e DLQ.
+- Inspeção e reprocessamento.
+
+Edição concorrente:
+- Versionamento otimista.
+- Conflito HTTP 409 ou equivalente documentado.
+- Não sobrescrever silenciosamente.
+
+Compra da última passagem:
+- Explicitamente fora do escopo.
+- Não crie pagamentos ou estoque para satisfazer um exemplo genérico.
+- Use edição concorrente como caso de consistência pertinente.
+
+Crie demonstrações técnicas apenas em perfil de desenvolvimento:
+- Timeout controlado.
+- Evento duplicado.
+- Falha persistente e DLQ.
+- Reprocessamento.
+- Conflito de edição.
+
+Nunca exponha endpoints de falha artificial publicamente em produção.
+
+======================================================================
+11. INTERFACE
+======================================================================
+
+Identidade:
+- Nome OinbuPebas.
+- Português brasileiro.
+- Visual profissional, leve e responsivo.
+- Identidade própria com referências regionais discretas.
+- Sem copiar marca de aplicativo existente.
+- Alto contraste e hierarquia clara.
+
+Página principal:
+- Busca origem/destino.
+- Inverter origem/destino.
+- Localização atual com consentimento.
+- Data e horário.
+- Preferências.
+- Mapa.
+- Resultados em cartões.
+- Detalhamento do trajeto.
+- Aviso acadêmico.
+
+Demais telas:
+- Linhas e detalhes.
+- Paradas e próximas partidas.
+- Favoritos.
+- Perfil e preferências.
+- Login, cadastro e recuperação.
+- Painel administrativo.
+- CRUDs.
+- Importações.
+- Avisos.
+- Estatísticas.
+- Auditoria.
+- Monitoramento de tarefas.
+
+Estados obrigatórios:
+- Carregando.
+- Sem resultados.
+- Sem serviço no horário.
+- Falha de rede.
+- Localização negada.
+- Camada de mapa indisponível.
+- Sessão expirada.
+- Permissão insuficiente.
+- Dado simulado.
+- Posição desatualizada.
+
+Acessibilidade:
+- Navegação por teclado.
+- Labels.
+- Foco visível.
+- Contraste.
+- Mensagens compreensíveis.
+- Mapa não pode ser a única forma de acessar informações.
+- Não dependa apenas de cores.
+- Respeite preferência por movimento reduzido.
+
+PWA básica:
+- Manifesto e ícones.
+- Cache do shell estático.
+- Sem armazenar respostas privadas indiscriminadamente.
+- Não apresentar veículos antigos como atuais no modo offline.
+- Não prometer planejamento offline completo.
+
+======================================================================
+12. SEGURANÇA E PRIVACIDADE
+======================================================================
+
+- Segredos somente por configuração segura.
+- Nenhum segredo em Git, logs, screenshots ou relatório.
+- .gitignore adequado.
+- .env.example sem valores reais.
+- Validação de entrada.
+- Consultas parametrizadas.
+- Tratamento de XSS.
+- CORS restrito quando necessário.
+- CSRF.
+- Limites de upload e paginação.
+- Erros sem stacktrace público.
+- Logs sem senhas, tokens ou coordenadas pessoais desnecessárias.
+- Histórico privado e apagável.
+- Não persistir GPS contínuo do usuário.
+- Não coletar localização antes de consentimento.
+- Auditoria de operações administrativas relevantes.
+
+Favoritos são intenções de trajeto, não reservas de uma viagem específica.
+Ao reabrir um favorito, recalcule para o horário escolhido.
+
+Estatísticas devem ser “mais consultadas”, não “mais utilizadas”:
+uma busca não comprova embarque.
+
+======================================================================
+13. INFRAESTRUTURA E DEPLOY
+======================================================================
+
+O proprietário possui uma VPS e pode ter credenciais Cloudflare
+configuradas localmente.
+
+Isso NÃO autoriza:
+- Vasculhar históricos de chats.
+- Ler cookies, perfis de navegador ou conversas anteriores.
+- Buscar segredos em diretórios pessoais sem escopo definido.
+- Exibir ou copiar tokens para arquivos do projeto.
+- Alterar serviços existentes sem análise.
+- Trocar nameservers ou configurações globais da conta.
+- Reutilizar cegamente tokens de privilégio amplo.
+
+Descubra apenas:
+- Ferramentas instaladas.
+- Configuração do repositório.
+- Variáveis explicitamente disponibilizadas para este projeto.
+- Contextos de infraestrutura expressamente autorizados.
+
+Se faltar acesso:
+- Conclua o sistema e os artefatos locais.
+- Gere instruções de deploy.
+- Solicite localização explícita da credencial ou uma variável segura.
+- Recomende token restrito ao recurso necessário.
+- Não bloqueie todo o desenvolvimento por isso.
+
+Antes de alterar VPS ou DNS:
+- Identifique host, domínio/subdomínio e serviços existentes.
+- Informe recursos que serão criados ou alterados.
+- Obtenha aprovação explícita para o alvo e a alteração.
+- Preserve serviços não relacionados.
+- Não execute limpeza destrutiva de volumes ou containers compartilhados.
+- Não abra banco, RabbitMQ, Mailpit ou Actuator sensível na internet.
+
+Cloudflare DNS não substitui acesso SSH à VPS.
+Não presuma que um token Cloudflare permite administrar o servidor.
+
+Entregue:
+- Dockerfiles multi-stage.
+- Compose de desenvolvimento.
+- Compose/configuração de produção.
+- Healthchecks.
+- Política de restart.
+- Volumes persistentes.
+- Limites de recursos razoáveis.
+- TLS.
+- Rotação de logs.
+- Backup e restauração de banco.
+- Procedimento de atualização.
+- Rollback de aplicação.
+- Cuidados com migrações incompatíveis.
+- Smoke test pós-deploy.
+
+Se deploy não for autorizado ou faltar infraestrutura, não diga que
+publicou. Descreva precisamente o bloqueio e mantenha a entrega local
+completa e executável.
+
+======================================================================
+14. TESTES E CRITÉRIOS DE ACEITE
+======================================================================
+
+Teste o sistema, não apenas a compilação.
+
+Backend:
+- Regras de calendário.
+- Horários após meia-noite.
+- Ordem de paradas.
+- Sentido.
+- Planejamento direto.
+- Uma baldeação.
+- Duas baldeações.
+- Conexão perdida.
+- Sem serviço.
+- Caminhada máxima.
+- Validação de coordenadas.
+- Autorização e propriedade.
+- Publicação inválida.
+- Concorrência.
+- Idempotência.
+- Outbox e retry.
+- Importação inválida sem corrupção.
+- Simulação determinística.
+
+Integração:
+- PostgreSQL/PostGIS real via Testcontainers.
+- RabbitMQ real quando necessário.
+- Migrações.
+- Publicação e consumo.
+- Persistência.
+- Falhas selecionadas.
+
+Frontend:
+- Formulários.
+- Estados de erro.
+- Preferências.
+- Apresentação de alternativas.
+- Expiração de sessão.
+
+E2E:
+1. Visitante busca Tropical → Partage Shopping.
+2. Seleciona alternativa e visualiza etapas e mapa.
+3. Abre veículo simulado e acompanha posição.
+4. Cadastra usuário e salva favorito.
+5. Reabre favorito e recalcula.
+6. Admin edita horário.
+7. Conflito concorrente é detectado.
+8. Importação inválida apresenta erros.
+9. Importação válida é processada e publicada.
+10. Evento duplicado não duplica efeito.
+11. Falha persistente aparece na DLQ e pode ser reprocessada.
+12. Interface funciona em viewport móvel.
+
+Datas e horários de teste devem ser controlados.
+Não crie testes intermitentes dependentes de “agora”.
+
+Registre comandos executados e resultados reais.
+Não declare testes como aprovados se não rodaram.
+Não fabrique métricas de cobertura ou performance.
+
+======================================================================
+15. ENTREGÁVEIS ACADÊMICOS
+======================================================================
+
+Produza documentação coerente com o código implementado.
+
+Arquivos mínimos:
+
+README.md
+- Visão geral.
+- Requisitos.
+- Inicialização.
+- Configuração.
+- Acesso local.
+- Contas de desenvolvimento.
+- Testes.
+- Troubleshooting.
+- Limitações.
+
+docs/relatorio.md
+- Contexto.
+- Problema.
+- Objetivos.
+- Escopo e exclusões.
+- Atores.
+- Requisitos.
+- Casos de uso.
+- Dados e proveniência.
+- Arquitetura.
+- Comunicação.
+- Consistência.
+- Falhas.
+- Segurança.
+- Implantação.
+- Validação.
+- Limitações.
+- Conclusão.
+- Fontes consultadas.
+
+Gere também PDF legível desse relatório, com ferramenta disponível,
+sumário e diagramas quando viável.
+Não invente nomes de integrantes, matrícula ou turma.
+Use campos claramente identificados para preenchimento.
+
+docs/casos-de-uso.md
+Cada caso relevante contém:
+- Identificador.
+- Ator.
+- Objetivo.
+- Pré-condições.
+- Fluxo principal.
+- Fluxos alternativos.
+- Falhas.
+- Pós-condições.
+- Critérios de aceite.
+
+docs/regras-de-negocio.md
+- Regras numeradas.
+- Relação com casos e testes.
+
+docs/arquitetura.md
+- Componentes.
+- Responsabilidades.
+- Dados sob responsabilidade.
+- Interfaces.
+- Dependências.
+- Justificativas.
+
+docs/falhas-e-consistencia.md
+- Matriz cenário → detecção → resposta → recuperação → teste.
+
+docs/dados-e-fontes.md
+- Referências.
+- Datas.
+- Proveniência por categoria.
+- Dados sintéticos.
+- Limitações de atualização.
+
+docs/deploy.md
+docs/operacao.md
+docs/testes.md
+docs/matriz-rastreabilidade.md
+docs/decisoes/
+
+A matriz de rastreabilidade deve ligar:
+requisito → módulo → caso de uso → teste → evidência.
+
+Cubra explicitamente as etapas da atividade:
+
+Etapa 1:
+- Pelo menos quatro componentes.
+- Nome.
+- Responsabilidade.
+- Dados.
+- Comunicação.
+
+Etapa 2:
+- Monólito modular.
+- REST, não SOAP.
+- Comunicação síncrona e assíncrona.
+- Sem API Gateway.
+- Sem Service Mesh.
+- Justificativas proporcionais ao projeto.
+
+Etapa 3:
+- Indisponibilidade.
+- Timeout.
+- Duplicação.
+- Evento não processado.
+- Não aplicabilidade da venda de passagens.
+- Concorrência pertinente ao domínio.
+- Independência da operação real de transporte.
+
+Etapa 4:
+- Diagramas completos e coerentes.
+
+Não produzir roteiro de apresentação ou slides.
+
+======================================================================
+16. DIAGRAMAS
+======================================================================
+
+Crie fontes Mermaid e versões SVG/PNG renderizadas.
+
+Diagramas:
+1. Contexto.
+2. Containers/processos.
+3. Componentes do monólito.
+4. Entidade-relacionamento.
+5. Sequência da busca de trajeto.
+6. Sequência de importação assíncrona.
+7. Sequência outbox → broker → consumidor idempotente.
+8. Implantação na VPS.
+9. Fluxo de simulação e atualização do mapa.
+
+Os diagramas devem mostrar:
+- Usuário e administrador.
+- Frontend.
+- Backend modular.
+- Banco.
+- RabbitMQ.
+- Interfaces HTTP/REST, SSE e AMQP.
+- Direção das setas.
+- Responsabilidades.
+- Integrações opcionais.
+- Limites de confiança quando relevantes.
+
+Não desenhe um banco por módulo se a implementação usa banco único.
+Não desenhe workers separados se não existem.
+Não desenhe integração externa como obrigatória se é opcional.
+Diferencie diagrama da arquitetura implementada de arquitetura futura.
+
+======================================================================
+17. MÉTODO DE EXECUÇÃO
+======================================================================
+
+Execute internamente em fases:
+
+1. Inspecione o ambiente e registre premissas.
+2. Crie o plano e a matriz inicial de requisitos.
+3. Estruture o repositório.
+4. Implemente infraestrutura e migrações.
+5. Modele o catálogo e crie dados demonstrativos.
+6. Implemente planejamento com testes.
+7. Implemente autenticação e administração.
+8. Implemente simulação.
+9. Implemente mensageria, importação e recuperação.
+10. Construa e integre o frontend.
+11. Execute testes e corrija problemas.
+12. Produza documentos e diagramas.
+13. Prepare produção e realize deploy somente se autorizado.
+14. Execute verificação final.
+
+Mantenha:
+- AGENTS.md com orientações do projeto.
+- docs/progresso.md com estado e pendências.
+- docs/decisoes/ com ADRs.
+- Scripts reproduzíveis.
+
+Atualize o progresso com fatos, não estimativas de sucesso.
+Não pare após gerar o scaffolding.
+Não esconda TODOs que impeçam os fluxos principais.
+Não troque regras reais por mocks em produção.
+Mocks são permitidos em testes.
+Simulação de veículos é funcionalidade explícita, não desculpa para
+simular banco, autenticação ou algoritmo.
+
+Se precisar reduzir algo por limitação real, preserve:
+- Sistema executável.
+- Planejamento real sobre horários cadastrados.
+- Dados transparentes.
+- Monólito modular.
+- Mensageria demonstrável.
+- Tratamento de falhas.
+- Documentação coerente.
+
+Registre claramente o que ficou incompleto.
+
+======================================================================
+18. DEFINIÇÃO DE PRONTO
+======================================================================
+
+O projeto só está pronto quando:
+
+- Sobe por procedimento documentado.
+- Banco é criado por migrações.
+- Seeds são reproduzíveis.
+- Consulta pública funciona.
+- Tropical → Partage pode ser demonstrado.
+- Existem resultados diretos e com baldeação em cenários testados.
+- Veículos percorrem trajetos simulados no mapa.
+- Posição e horários usam relógio consistente.
+- Usuário salva favoritos.
+- Admin mantém o catálogo.
+- Importação assíncrona funciona.
+- Duplicação não repete efeitos.
+- Falhas têm recuperação demonstrável.
+- Não existem segredos versionados.
+- Testes principais foram executados.
+- Documentos descrevem o que realmente foi construído.
+- Diagramas renderizados existem.
+- Relatório Markdown e PDF existem.
+- Deploy está concluído com evidência ou bloqueio explicitamente informado.
+
+Na resposta final, apresente:
+1. O que foi implementado.
+2. Como iniciar e acessar.
+3. Testes executados e resultados.
+4. Entregáveis gerados.
+5. Estado do deploy.
+6. Limitações reais.
+7. Ações manuais restantes, se houver.
+
+Não afirme que “está tudo pronto” com serviços não iniciados,
+testes falhando ou caminhos principais não verificados.
+
+Comece agora pela inspeção do ambiente e implemente o projeto.

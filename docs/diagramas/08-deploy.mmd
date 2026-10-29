@@ -1,0 +1,9 @@
+flowchart TB
+  Internet -->|80/443| C[Caddy na VPS]
+  C --> F[Frontend]
+  C --> B[Backend]
+  B --> D[(PostGIS interno)]
+  B --> R[(RabbitMQ interno)]
+  D --> V1[(volume persistente)]
+  R --> V2[(volume persistente)]
+  CF[Cloudflare DNS opcional] -.-> Internet

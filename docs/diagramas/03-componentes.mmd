@@ -1,0 +1,8 @@
+flowchart LR
+  I[identity] --> P[personalization]
+  T[transit] --> J[journey]
+  T --> S[simulation]
+  J --> O[operations]
+  I --> O
+  O --> R[(RabbitMQ)]
+  I & T & P & O --> D[(Banco único)]
