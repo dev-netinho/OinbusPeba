@@ -1,22 +1,27 @@
 # Deploy
 
-Nenhum deploy externo foi autorizado ou realizado. Faltam host/subdomínio, acesso SSH e aprovação explícita dos recursos a alterar.
+Deploy realizado e validado em `https://oinbuspeba.olua.me` na VPS `koss-vps`
+(Ubuntu 24.04, Docker). Commit implantado: `2f54e11`. O subdomínio usa um
+túnel Cloudflare dedicado ao OinbuPebas, que encaminha `/api` ao backend e o
+restante ao frontend. O túnel e os serviços usam volumes/rede próprios; não
+há portas públicas para PostgreSQL, RabbitMQ, Mailpit ou Actuator.
 
 ## Preparação
 
 1. Crie token DNS Cloudflare restrito apenas ao registro necessário, se DNS automatizado for desejado. Ele não substitui SSH.
-2. Na VPS, instale Docker/Compose e confirme portas 80/443 livres.
+2. Na VPS, instale Docker/Compose e confirme o proxy/túnel autorizado.
 3. Copie o repositório sem `.tools`, crie `.env` com segredos longos e `APP_DOMAIN`.
 4. Faça backup antes de atualizar.
 
 ```sh
-docker compose -f compose.yml -f compose.prod.yml pull
-docker compose -f compose.yml -f compose.prod.yml build
-docker compose -f compose.yml -f compose.prod.yml up -d
+git fetch origin main && git checkout main && git pull --ff-only
+docker compose -f compose.yml -f compose.prod.yml -f compose.vps.yml up -d --build
 ./scripts/smoke-test.sh "https://$APP_DOMAIN"
 ```
 
-Caddy obtém/renova TLS. Apenas 80/443 ficam públicos; banco, RabbitMQ, frontend interno e Actuator sensível permanecem na rede Compose. Readiness pode ser roteado somente para checagem controlada.
+O Cloudflare termina o TLS público; o túnel dedicado alcança somente os
+containers do projeto na rede `traefik-public`. Banco, RabbitMQ, frontend
+interno e Actuator permanecem sem portas públicas.
 
 ## Backup e restauração
 
@@ -33,3 +38,17 @@ Teste a restauração em banco separado. Proteja e rotacione backups; eles cont�
 - Migrações aditivas podem acompanhar o deploy. Migrações destrutivas exigem fase de compatibilidade e backup testado.
 - Rollback de aplicação: reaponte tags anteriores e suba novamente. Não reverta banco automaticamente se a migração for incompatível; use procedimento específico.
 - Confirme login, busca Tropical → Partage, SSE/polling, fila/outbox e logs sem segredos.
+
+## Rollback executado de forma segura
+
+Para retornar à versão anterior, use o commit desejado sem remover volumes:
+
+```sh
+git checkout <commit-anterior>
+docker compose -f compose.yml -f compose.prod.yml -f compose.vps.yml up -d --build
+```
+
+Não use `docker system prune`, não remova volumes `oinbupebas_*` e não faça
+rollback automático de migrations incompatíveis. O `.env` de produção fica
+em `/home/olua_developer/oinbupebas/.env` com permissão restrita e não é
+versionado.

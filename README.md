@@ -10,6 +10,14 @@ Plataforma acadêmica, independente e não oficial, para demonstrar planejamento
 - Frontend: Vue 3, TypeScript, Vite 8, Pinia, Tailwind CSS 4 e Leaflet.
 - Operação: Docker Compose, Caddy TLS, Mailpit em desenvolvimento e healthchecks.
 
+## Acesso público
+
+Ambiente de produção validado em <https://oinbuspeba.olua.me>. Frontend, API,
+PostgreSQL/PostGIS, RabbitMQ e o túnel Cloudflare dedicado estão ativos na
+VPS autorizada. O acesso administrativo é criado no primeiro boot por
+`ADMIN_EMAIL`/`ADMIN_PASSWORD`, mantidos somente no `.env` da VPS; solicite
+esse acesso ao responsável pela operação sem compartilhar a senha.
+
 ## Início rápido
 
 Requisitos recomendados: Docker Engine 27+ com Compose v2.24+.
@@ -51,10 +59,12 @@ Testes de integração com Testcontainers exigem Docker. Consulte [docs/testes.m
 Variáveis documentadas em `.env.example`. Em produção, use segredos longos fora do Git, `COOKIE_SECURE=true`, um domínio válido e compose sobreposto:
 
 ```sh
-docker compose -f compose.yml -f compose.prod.yml up -d --build
+docker compose -f compose.yml -f compose.prod.yml -f compose.vps.yml up -d --build
 ```
 
-Leia [docs/deploy.md](docs/deploy.md) antes de publicar. Nenhuma VPS ou conta Cloudflare foi alterada por esta entrega.
+Leia [docs/deploy.md](docs/deploy.md) antes de publicar. A configuração
+`compose.vps.yml` usa a rede externa `traefik-public` e o túnel Cloudflare
+dedicado, sem abrir portas do banco ou RabbitMQ.
 
 ## Cenário demonstrativo
 

@@ -1,6 +1,19 @@
 # Progresso
 
-Atualizado em 2026-10-29 após revalidação do ambiente e tentativa de execução integrada.
+Atualizado em 2026-10-29 após deploy externo autorizado e smoke tests públicos.
+
+## Evidência de produção
+
+- URL: `https://oinbuspeba.olua.me` (HTTPS válido via túnel Cloudflare dedicado).
+- Commit implantado: `2f54e11dfb9227655a373fda99c797938562fcba`.
+- Frontend, backend, PostgreSQL/PostGIS e RabbitMQ estão saudáveis; os volumes
+  `oinbupebas_postgres_data` e `oinbupebas_rabbitmq_data` são próprios do projeto.
+- Flyway v1–v3 e seed demonstrativo foram aplicados no banco de produção.
+- Smoke tests externos aprovados: catálogo, Tropical → Partage com alternativas
+  direta/1/2 baldeações, SSE, cadastro, login/logout, favorito persistido e 401
+  em endpoint administrativo sem sessão.
+- Testcontainers continua não executável no workstation por falta de Docker;
+  o build remoto e a inicialização real no VPS foram aprovados.
 
 ## Legenda de estado
 
@@ -39,7 +52,7 @@ Atualizado em 2026-10-29 após revalidação do ambiente e tentativa de execuç�
 | Testcontainers PostGIS/RabbitMQ | `InfrastructureIntegrationTest` cobre seed, PostGIS, importação, duplicata e DLQ e é omitido sem Docker | Runtime de containers ausente, portanto 3 testes foram skipped | Suíte Testcontainers com migrations, persistência e AMQP | bloqueado externamente |
 | E2E dos 12 fluxos | Especificação atual cobre falha de catálogo sem fallback; componentes reais estão integrados | Chromium não foi disponibilizado e Compose não sobe sem Docker | Playwright apontado para Compose saudável | bloqueado externamente |
 | Documentação acadêmica e diagramas | README, relatório MD/PDF, documentos e 9 diagramas renderizados | Precisam ser sincronizados somente depois das implementações e validações desta rodada | Verificação de links, renderização e coerência com código | implementado não validado |
-| Deploy externo | Artefatos e procedimento preparados | Não há host, domínio, SSH nem autorização explícita do alvo | Smoke pós-deploy após autorização | bloqueado externamente |
+| Deploy externo | `compose.vps.yml`, túnel dedicado, DNS CNAME e volumes isolados | Playwright público completo ainda não foi executado | Smoke externo de frontend, API, catálogo, planejamento, SSE, conta e autorização | validado com evidência |
 
 ## Evidência preservada da rodada anterior
 
@@ -58,7 +71,7 @@ Esses resultados não validam PostgreSQL/PostGIS, RabbitMQ, migrações, autenti
 - Há um JDK 21, Maven e Node locais em `.tools/`, ignorados pelo Git, que podem ser usados sem alteração global.
 - Não existe `/var/run/docker.sock` nem `/run/podman/podman.sock`; não há processos Docker/Podman/PostgreSQL/RabbitMQ.
 - Playwright 1.56.1 é a versão do projeto. O cache possui Chromium 1248 (Chrome for Testing 156.0.8078.4), enquanto a versão do projeto requer a revisão 1194; ele não foi usado como substituto arbitrário. A tentativa `node frontend/node_modules/playwright-core/cli.js install chromium` não produziu progresso em aproximadamente 12 segundos e foi interrompida.
-- Não há autorização para deploy, DNS ou VPS. Para concluir deploy serão necessários host, domínio/subdomínio, acesso SSH, credenciais restritas pertinentes e aprovação explícita das alterações.
+- O deploy foi autorizado para `koss-vps` e `oinbuspeba.olua.me`; a credencial Cloudflare foi usada apenas para DNS e para o túnel dedicado do projeto.
 
 ### Retomada quando o ambiente for liberado
 

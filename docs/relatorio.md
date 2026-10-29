@@ -51,7 +51,14 @@ Falhas de backend, timeout, mapa e SSE possuem estado explícito. Banco indispon
 
 Dockerfiles multi-stage, Compose, healthchecks, volumes, limites, logs rotativos e Caddy TLS foram preparados. PostgreSQL/RabbitMQ não são publicados na produção. Backups usam `pg_dump -Fc`; rollback de app preserva cautela com migrações.
 
-Foram executados testes Maven e Vitest e build Vite. O host não possuía Docker, portanto Testcontainers, PostGIS/RabbitMQ reais, smoke e Playwright não foram executados. O deploy externo também não foi autorizado; não houve alteração em VPS, DNS ou Cloudflare.
+Foram executados testes Maven, Vitest e build Vite. O host de desenvolvimento
+não possuía Docker, portanto os testes Testcontainers locais e Playwright não
+foram executados. Após autorização explícita, o commit `2f54e11` foi publicado
+na VPS e validado externamente em <https://oinbuspeba.olua.me>: migrations e
+seed, catálogo, planejamento Tropical → Partage, SSE, cadastro/login/logout,
+favoritos persistidos e autorização administrativa sem sessão. O DNS usa um
+CNAME para um túnel Cloudflare dedicado ao projeto; banco, broker, Mailpit e
+Actuator não são expostos publicamente.
 
 ## 8. Limitações e conclusão
 
